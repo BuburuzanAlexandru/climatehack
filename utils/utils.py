@@ -2,6 +2,7 @@ import os
 import numpy as np
 import yaml
 import torch
+import matplotlib.pyplot as plt
 
 def create_files(path_list):
     """Creates non-existing files"""
@@ -38,3 +39,43 @@ def save_model(epoch, model, optimizer, path):
         'state_dict': state_dict,
         'optimizer' : optimizer.state_dict()},
         path + '/{}.pt'.format(epoch))
+    
+    
+def plot_preds(x, y, p):
+    fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(5, 12, figsize=(10,4))
+    _min = np.min([x.min(), y.min(), p.min()])
+    _max = np.max([x.max(), y.max(), p.max()])
+    # plot the twelve 128x128 input images
+    for i, img in enumerate(x):
+        ax1[i].imshow(img, cmap='viridis', vmin=_min, vmax=_max)
+        ax1[i].get_xaxis().set_visible(False)
+        ax1[i].get_yaxis().set_visible(False)
+
+    # plot twelve 64x64 true output images
+    for i, img in enumerate(y[:12]):
+        ax2[i].imshow(img, cmap='viridis', vmin=_min, vmax=_max)
+        ax2[i].get_xaxis().set_visible(False)
+        ax2[i].get_yaxis().set_visible(False)
+
+    # plot twelve more 64x64 true output images
+    for i, img in enumerate(y[12:]):
+        ax3[i].imshow(img, cmap='viridis', vmin=_min, vmax=_max)
+        ax3[i].get_xaxis().set_visible(False)
+        ax3[i].get_yaxis().set_visible(False)
+
+    # plot the twelve 64x64 predicted output images
+    for i, img in enumerate(p[:12]):
+        ax4[i].imshow(img, cmap='viridis', vmin=_min, vmax=_max)
+        ax4[i].get_xaxis().set_visible(False)
+        ax4[i].get_yaxis().set_visible(False)
+
+    # plot twelve more 64x64 output images
+    for i, img in enumerate(p[12:]):
+        ax5[i].imshow(img, cmap='viridis', vmin=_min, vmax=_max)
+        ax5[i].get_xaxis().set_visible(False)
+        ax5[i].get_yaxis().set_visible(False)
+
+    fig.tight_layout()
+    fig.subplots_adjust(wspace=0, hspace=0)
+    plt.show()
+    

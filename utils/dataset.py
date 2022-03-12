@@ -2,6 +2,7 @@ from datetime import datetime, time, timedelta
 from functools import lru_cache
 from random import randrange
 from typing import Iterator, T_co
+from cv2 import normalize
 
 import numpy as np
 import xarray as xr
@@ -102,6 +103,10 @@ class ClimateHackDataset(IterableDataset):
     def __iter__(self) -> Iterator[T_co]:
         if self.cached_items:
             for item in self.cached_items:
+                batch_coordinates, batch_features, batch_targets = item
+                # create channel dimension (t, c, x, y)
+                batch_features = batch_features[:, np.newaxis, ...]
+                item = (batch_features, batch_targets) #[:12, ...])
                 yield item
 
             return

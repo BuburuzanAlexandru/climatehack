@@ -3,6 +3,7 @@ import numpy as np
 import torch
 import random
 import multiprocessing
+from submission.ConvLSTM2 import config_3x3_16_3x3_32_3x3_64
 
 # ensure reproducibility
 SEED = 666013
@@ -20,15 +21,15 @@ SATELLITE_ZARR_PATH = "gs://public-datasets-eumetsat-solar-forecasting/satellite
 
 config = {
     'data_path': "D:/climate_hack/eumetsat_seviri_hrv_uk.zarr",
-    'batch_size': 30,
+    'batch_size': 8,
     'lr': 1e-4,
     'device': "cuda:0" if torch.cuda.is_available() else "cpu",
-    'num_epochs': 1, #30,
+    'num_epochs': 30,
     'num_workers': multiprocessing.cpu_count()
 }
 
 ################
-round_name = 'exp'
+round_name = 'conv-lstm-unet_no-final-bn_head-conv' #'unet_batch-size-64_num-epochs-10'
 ################
 
 results_path =  os.path.join("D:/climate_hack/results", round_name)
@@ -40,4 +41,4 @@ results_config = {
     'tensorboard_path' : os.path.join(results_path, 'tensorboard')
 }
 
-config = {**config, **results_config}
+config = {**config, **results_config, **config_3x3_16_3x3_32_3x3_64}
