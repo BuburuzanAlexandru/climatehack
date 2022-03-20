@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import random
 import multiprocessing
-from submission.ConvLSTM2 import config_3x3_16_3x3_32_3x3_64
+from submission.ConvLSTM2 import net_config
 
 # ensure reproducibility
 SEED = 666013
@@ -25,12 +25,13 @@ config = {
     'batch_size': 6,
     'lr': 1e-4,
     'device': "cuda:0" if torch.cuda.is_available() else "cpu",
-    'num_epochs': 30,
-    'num_workers': multiprocessing.cpu_count()
+    'num_epochs': 20,
+    'num_workers': multiprocessing.cpu_count(),
+    'weight_decay': 1e-5
 }
 
 ################
-round_name = 'exp' #conv-lstm-unet_no-final-bn_head-conv' #'unet_batch-size-64_num-epochs-10'
+round_name = 'exp' #conv-lstm-unet_no-final-bn_head-conv'
 ################
 
 results_path =  os.path.join("D:/climate_hack/results", round_name)
@@ -42,4 +43,4 @@ results_config = {
     'tensorboard_path' : os.path.join(results_path, 'tensorboard')
 }
 
-config = {**config, **results_config, **config_3x3_16_3x3_32_3x3_64}
+config = {**config, **results_config, **net_config}

@@ -1,4 +1,3 @@
-from fileinput import filename
 import torch
 import json
 from torch.utils.data import Dataset
