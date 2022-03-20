@@ -42,7 +42,7 @@ def save_model(epoch, model, optimizer, path):
     
     
 def plot_preds(x, y, p):
-    fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(5, 12, figsize=(10,4))
+    fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(5, 12, figsize=(20,8))
     _min = np.min([x.min(), y.min(), p.min()])
     _max = np.max([x.max(), y.max(), p.max()])
     # plot the twelve 128x128 input images

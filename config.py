@@ -20,8 +20,9 @@ torch.backends.cudnn.deterministic = True
 SATELLITE_ZARR_PATH = "gs://public-datasets-eumetsat-solar-forecasting/satellite/EUMETSAT/SEVIRI_RSS/v3/eumetsat_seviri_hrv_uk.zarr"
 
 config = {
-    'data_path': "D:/climate_hack/eumetsat_seviri_hrv_uk.zarr",
-    'batch_size': 8,
+    'dataset_path': "D:\\climate_hack\\eumetsat_seviri_hrv_uk.zarr",
+    'data_path': "D:\\climate_hack\\data",
+    'batch_size': 6,
     'lr': 1e-4,
     'device': "cuda:0" if torch.cuda.is_available() else "cpu",
     'num_epochs': 30,
@@ -29,7 +30,7 @@ config = {
 }
 
 ################
-round_name = 'conv-lstm-unet_no-final-bn_head-conv' #'unet_batch-size-64_num-epochs-10'
+round_name = 'exp' #conv-lstm-unet_no-final-bn_head-conv' #'unet_batch-size-64_num-epochs-10'
 ################
 
 results_path =  os.path.join("D:/climate_hack/results", round_name)

@@ -12,7 +12,7 @@ class Evaluator(BaseEvaluator):
         In this case, it loads the trained model (in evaluation mode)."""
 
         self.model = ConvLSTM()
-        self.model.load_state_dict(torch.load("model.pt", map_location=torch.device('cpu')))
+        self.model.load_state_dict(torch.load("model_conv-lstm-unet_all-data_0.214valid.pt", map_location=torch.device('cpu')))
         self.model.eval()
 
     def predict(self, coordinates: np.ndarray, data: np.ndarray) -> np.ndarray:
@@ -28,7 +28,7 @@ class Evaluator(BaseEvaluator):
 
         assert coordinates.shape == (2, 128, 128)
         assert data.shape == (12, 128, 128)
-        input = torch.from_numpy(data).view(1, 12, 1, 128, 128) / 1024.0
+        input = torch.from_numpy(data.astype(np.float32)).view(1, 12, 1, 128, 128) / 1024.0
 
         with torch.no_grad():
             prediction = (
