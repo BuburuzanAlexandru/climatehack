@@ -22,7 +22,7 @@ SATELLITE_ZARR_PATH = "gs://public-datasets-eumetsat-solar-forecasting/satellite
 config = {
     'dataset_path': "D:\\climate_hack\\eumetsat_seviri_hrv_uk.zarr",
     'data_path': "D:\\climate_hack\\data",
-    'batch_size': 6,
+    'batch_size': 1,
     'lr': 1e-4,
     'device': "cuda:0" if torch.cuda.is_available() else "cpu",
     'num_epochs': 20,

@@ -8,6 +8,7 @@ from utils.dataset_preprocessed import ClimatehackDatasetPreprocessed
 from utils.loss import MS_SSIMLoss
 from utils.utils import *
 from config import config, results_config
+from tqdm import tqdm
 
 from submission.ConvLSTM2 import ConvLSTM
 
@@ -15,9 +16,6 @@ device = torch.device(config['device'])
 create_files(results_config.values())
 save_logs(config, config['logs_path'])
 writer = SummaryWriter(config['tensorboard_path'])
-
-train_batch = 0
-valid_batch = 0
 
 def train_one_epoch(model, optimizer, train_dataloader, writer, criterion, epoch):
     """
@@ -27,7 +25,7 @@ def train_one_epoch(model, optimizer, train_dataloader, writer, criterion, epoch
     count = 0
     model.train()
 
-    for inputs, target in train_dataloader:
+    for inputs, target in tqdm(train_dataloader):
         inputs = inputs.to(device)
         target = target.to(device)
         
@@ -47,9 +45,6 @@ def train_one_epoch(model, optimizer, train_dataloader, writer, criterion, epoch
         # update stats
         train_loss += batch_loss.item() * output.shape[0]
         count += output.shape[0]
-
-        writer.add_scalar('Train/lr', get_lr(optimizer), train_batch)
-        train_batch += 1
         
         # scheduler.step()
 
@@ -67,7 +62,7 @@ def valid(model, optimizer, valid_dataloader, writer, criterion, epoch):
     model.eval()
 
     with torch.no_grad():
-        for inputs, target in valid_dataloader:
+        for inputs, target in tqdm(valid_dataloader):
             inputs = inputs.to(device)
             target = target.to(device)
             
@@ -76,8 +71,6 @@ def valid(model, optimizer, valid_dataloader, writer, criterion, epoch):
             
             valid_loss += batch_loss.item() * output.shape[0]
             count += output.shape[0]
-                
-            valid_batch += 1
             
             del inputs, target, output, batch_loss
     
@@ -88,10 +81,12 @@ def valid(model, optimizer, valid_dataloader, writer, criterion, epoch):
 
 
 def main():
-    train_dataset = ClimatehackDatasetPreprocessed(config['data_path'] + '\\train', config['data_path'] + '\\train_list.json')
+    train_dataset = ClimatehackDatasetPreprocessed(os.path.join(config['data_path'], 'train'),
+                                                   os.path.join(config['data_path'], 'train_list.json'))
     train_dataloader = DataLoader(train_dataset, batch_size=config['batch_size'], num_workers=config['num_workers'], shuffle=True)
 
-    valid_dataset = ClimatehackDatasetPreprocessed(config['data_path'] + '\\valid', config['data_path'] + '\\valid_list.json')
+    valid_dataset = ClimatehackDatasetPreprocessed(os.path.join(config['data_path'], 'valid'),
+                                                   os.path.join(config['data_path'], 'valid_list.json'))
     valid_dataloader = DataLoader(valid_dataset, batch_size=config['batch_size'], num_workers=config['num_workers'], shuffle=False)
 
     model = ConvLSTM()
@@ -107,6 +102,7 @@ def main():
     print('Successfully created model')
 
     for epoch in range(config['num_epochs']):
+        print('Epoch', epoch)
         train_one_epoch(model, optimizer, train_dataloader, writer, criterion, epoch)
         valid(model, optimizer, valid_dataloader, writer, criterion, epoch)
     
