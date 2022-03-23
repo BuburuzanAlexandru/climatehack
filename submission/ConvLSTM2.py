@@ -1,7 +1,6 @@
 from inspect import getargs
 import torch
 import torch.nn as nn
-import antialiased_cnns
 
 get_activation = {
     'leaky': nn.LeakyReLU(inplace=True),
@@ -46,18 +45,14 @@ get_activation = {
 # }
 
 net_config = {
-    'encoder' : [('convlstm', 'swish', 9, 8, 5, 2, 1),
-                 ('down', 'swish', 8, 16),
-                 ('convlstm', '', 32, 16, 3, 1, 1),
-                 ('down', 'swish', 16, 32),
-                 ('convlstm', '', 64, 32, 3, 1, 1)],
-    'decoder' : [('convlstm', '', 32, 32, 3, 1, 1),
-                 ('up', 'swish', 32, 16),
-                 ('convlstm', '', 32, 16, 3, 1, 1),
-                 ('up', 'swish', 16, 8),
-                 ('convlstm', '', 16, 8, 5, 2, 1),
-                 ('conv', 'swish', 8, 8, 3, 1, 1, False),
-                 ('conv', 'sigmoid', 8, 1, 1, 0, 1, False)]
+    'encoder' : [('convlstm', 'swish', 33, 32, 5, 2, 1),
+                 ('down', 'swish', 32, 64),
+                 ('convlstm', '', 128, 64, 3, 1, 1)],
+    'decoder' : [('convlstm', '', 64, 64, 3, 1, 1),
+                 ('up', 'swish', 64, 32),
+                 ('convlstm', '', 64, 32, 5, 2, 1),
+                 ('conv', 'swish', 32, 16, 3, 1, 1, False),
+                 ('conv', 'sigmoid', 16, 1, 1, 0, 1, False)]
 }
 
 def conv3x3(in_planes: int, out_planes: int, stride: int = 1) -> nn.Conv2d:
@@ -84,24 +79,26 @@ class Down(nn.Module):
         super().__init__()
         # conv1x1->blurpool is the same as blurpool->conv1x1; the latter is cheaper
         self.downsample = nn.Sequential(
-            antialiased_cnns.BlurPool(in_channels, stride=2),
-            conv1x1(in_channels, out_channels)
+            conv1x1(in_channels, out_channels, stride=2),
+            nn.BatchNorm2d(out_channels)
         )
 
-        self.conv1 = conv3x3(in_channels, out_channels)
-        self.blur = antialiased_cnns.BlurPool(out_channels, stride=2)
+        self.conv1 = conv3x3(in_channels, out_channels, stride=2)
+        self.bn1 = nn.BatchNorm2d(out_channels)
 
         self.conv2 = conv3x3(out_channels, out_channels)
+        self.bn2 = nn.BatchNorm2d(out_channels)
 
         self.activation = get_activation[activation]
 
 
     def forward(self, x):
         out = self.conv1(x)
+        out = self.bn1(out)
         out = self.activation(out)
-        out = self.blur(out)
 
         out = self.conv2(out)
+        out = self.bn2(out)
         
         # make skip connection
         identity = self.downsample(x)
@@ -120,7 +117,9 @@ class Up(nn.Module):
 
         self.up_conv = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2)
         self.conv1 = conv3x3(out_channels, out_channels)
+        self.bn1 = nn.BatchNorm2d(out_channels)
         self.conv2 = conv3x3(out_channels, out_channels)
+        self.bn2 = nn.BatchNorm2d(out_channels)
 
         self.activation = get_activation[activation]
 
@@ -129,9 +128,11 @@ class Up(nn.Module):
         x = self.up_conv(x)
 
         x = self.conv1(x)
+        x = self.bn1(x)
         x = self.activation(x)
 
         x = self.conv2(x)
+        x = self.bn2(x)
         x = self.activation(x)
 
         return x
@@ -224,10 +225,12 @@ class Encoder(nn.Module):
         context_h, context_c = [], []
         for layer in self.layers:
             if 'conv_' in layer or 'down' in layer:
-                out = [getattr(self, layer)(x[:, i, ...]) for i in range(x.shape[1])]
-                x = torch.stack(out, dim=1)
+                B, S, C, H, W = x.shape
+                x = x.view(B * S, C, H, W)
+                x = getattr(self, layer)(x)
+                x = x.view(B, S, x.shape[1], x.shape[2], x.shape[3])
 
-            if 'convlstm' in layer:
+            elif 'convlstm' in layer:
                 x, hx, cx = getattr(self, layer)(inputs=x, seq_len=x.shape[1])
                 outputs.append(x[:, -1])
                 context_h.append(hx)
@@ -263,8 +266,10 @@ class Decoder(nn.Module):
         idx = len(encoder_outputs)-1
         for layer in self.layers:
             if 'conv_' in layer or 'deconv_' in layer or 'up' in layer:
-                out = [getattr(self, layer)(x[:, i, ...]) for i in range(x.shape[1])]
-                x = torch.stack(out, dim=1)
+                B, S, C, H, W = x.shape
+                x = x.view(B * S, C, H, W)
+                x = getattr(self, layer)(x)
+                x = x.view(B, S, x.shape[1], x.shape[2], x.shape[3])
             elif 'convlstm' in layer:
                 if '0' in layer:
                     x, _, _ = getattr(self, layer)(hx=context_h[idx][::-1], cx=context_c[idx][::-1])

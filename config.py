@@ -27,7 +27,8 @@ config = {
     'device': "cuda:0" if torch.cuda.is_available() else "cpu",
     'num_epochs': 20,
     'num_workers': multiprocessing.cpu_count(),
-    'weight_decay': 1e-5
+    'weight_decay': 1e-5,
+    'pretrain_path': None
 }
 
 ################

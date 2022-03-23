@@ -1,3 +1,4 @@
+from sched import scheduler
 import torch
 import torch.nn as nn
 
@@ -24,6 +25,8 @@ def train_one_epoch(model, optimizer, train_dataloader, writer, criterion, epoch
     train_loss = 0
     count = 0
     model.train()
+    print('lr:', get_lr(optimizer))
+    writer.add_scalar('Train/lr', get_lr(optimizer), epoch)
 
     for inputs, target in tqdm(train_dataloader):
         inputs = inputs.to(device)
@@ -78,6 +81,7 @@ def valid(model, optimizer, valid_dataloader, writer, criterion, epoch):
     writer.add_scalar('Valid/loss', valid_loss / count, epoch)
     
     save_model(epoch, model, optimizer, config['checkpoints_path'])
+    return valid_loss / count
 
 
 def main():
@@ -95,16 +99,20 @@ def main():
         model = nn.DataParallel(model)
 
     model.to(device)
+    if config['pretrain_path'] is not None:
+        model.load_state_dict(torch.load(config['pretrain_path'])['state_dict'])
 
     optimizer = torch.optim.Adam(model.parameters(), lr=config['lr'], weight_decay=config['weight_decay'])
     criterion = MS_SSIMLoss(channels=24) # produces less blurry images than nn.MSELoss()
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=5)
 
     print('Successfully created model')
 
     for epoch in range(config['num_epochs']):
         print('Epoch', epoch)
         train_one_epoch(model, optimizer, train_dataloader, writer, criterion, epoch)
-        valid(model, optimizer, valid_dataloader, writer, criterion, epoch)
+        valid_loss = valid(model, optimizer, valid_dataloader, writer, criterion, epoch)
+        scheduler.step(valid_loss)
     
 
 if __name__ == '__main__':
