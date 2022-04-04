@@ -336,3 +336,34 @@ class MS_SSIMLoss(nn.Module):
         Returns: multi-scale SSIM Loss
         """
         return 1.0 - self.ssim_module(x, y)
+
+
+class MS_SSIMLoss_weighted(nn.Module):
+    """Multi-Scale SSIM Loss"""
+
+    def __init__(self, **kwargs):
+        """
+        Initialize
+        Args:
+            convert_range: Convert input from -1,1 to 0,1 range
+            **kwargs: Kwargs to pass through to MS_SSIM
+        """
+        super(MS_SSIMLoss_weighted, self).__init__()
+        self.ssim_module = MS_SSIM(
+            data_range=1024.0, size_average=True, win_size=3, channel=1, **kwargs
+        )
+
+    def forward(self, x: torch.Tensor, y: torch.Tensor, alpha, beta):
+        """
+        Forward method
+        Args:
+            x: tensor one
+            y: tensor two
+        Returns: multi-scale SSIM Loss
+        """
+        weights = alpha + beta * torch.log(torch.linspace(0, 24, 24) + 1)
+        loss = torch.stack([
+            self.ssim_module(x[:, i], y[:, i]) * weights[i] for i in range(x.shape[1])
+        ])
+
+        return 1.0 - torch.mean(loss)

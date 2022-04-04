@@ -12,7 +12,7 @@ class Evaluator(BaseEvaluator):
         In this case, it loads the trained model (in evaluation mode)."""
 
         self.model = ConvLSTM()
-        self.model.load_state_dict(torch.load("conv_deep_lstm_fewer-channels_no-bn_epoch-21_lr1e-4.pt", map_location=torch.device('cpu'))['state_dict'])
+        self.model.load_state_dict(torch.load("conv_deep_lstm_no-atialiased_bn_epoch2_lr1e-4_0.199.pt", map_location=torch.device('cpu')))
         self.model.eval()
 
     def predict(self, coordinates: np.ndarray, data: np.ndarray) -> np.ndarray:
